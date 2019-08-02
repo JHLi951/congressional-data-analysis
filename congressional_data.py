@@ -2,6 +2,7 @@ from congress import Congress
 import credentials
 import pprint
 import requests
+import matplotlib.pyplot as plt
 
 
 PPC_BASE_URL = 'https://api.propublica.org/congress'
@@ -9,6 +10,18 @@ FEC_BASE_URL = 'https://api.open.fec.gov'
 VERSION = '/v1'
 CONGRESS_NO = 116
 congress = Congress(credentials.API_KEY)
+
+
+def get_member_list(congress, chamber):
+
+    url = PPC_BASE_URL + VERSION + f'/{congress}/{chamber}/members.json'
+    headers = {'X-API-Key': credentials.PPC_API_KEY}
+
+    response = requests.get(url, headers=headers)
+    mem_list = response.json()
+    mem_list = mem_list['results'][0]
+
+    return mem_list
 
 
 def get_senator_list():
@@ -24,6 +37,7 @@ def get_senator_list():
             senator_list.append((first_name + " " + last_name, party_affiliation, member_id))
     return senator_list
 
+
 def get_representative_list():
     representatives = congress.members.filter('house', congress=CONGRESS_NO)
     representative_list = []
@@ -37,27 +51,6 @@ def get_representative_list():
             representative_list.append((first_name + " " + last_name, party_affiliation, member_id))
     return representative_list
 
-def get_perfect_voters():
-    perfects = congress.votes.perfect('senate', congress=CONGRESS_NO)
-
-    for perfect_voter in perfects['members']:
-        name = perfect_voter['name']
-        party_affiliation = perfect_voter['party']
-        print(f'{name}, {party_affiliation}')
-
-# def get_member_info():
-
-def get_Democrats():
-    
-
-    senators = get_senator_list()
-    representatives = get_representative_list()
-    senate_democrats = [senator for senator in senators if senator[1] == "D"]
-    house_democrats = [rep for rep in representatives if rep[1] == "D"]
-    congress_democrats = senate_democrats + house_democrats
-
-    print("Senate democrats: " + str(len(senate_democrats)))
-    print("House democrats: " + str(len(house_democrats)))
 
 def get_member_id(name):
     senators = get_senator_list()
@@ -71,24 +64,91 @@ def get_member_id(name):
             return i
     return 0
 
-def get_vote_history(mem_id):
+
+def get_specific_member(name):
+    
+    member_id = get_member_id(name)
+    url = PPC_BASE_URL + VERSION + f'/members/{member_id}.json'
+    headers = {'X-API-Key': credentials.PPC_API_KEY}
+
+    response = requests.get(url, headers=headers)
+    mem_info = response.json()
+    mem_info = mem_info['results'][0]
+
+    return mem_info
+
+
+def get_yearly_expense(name):
+    spending = {}
+    mem_id = get_member_id(name)
+    url = PPC_BASE_URL + VERSION + f'/members/{mem_id}/office_expenses/2018/4.json'
+    headers = {'X-API-Key': credentials.PPC_API_KEY}
+
+    response = requests.get(url, headers=headers)
+    spending_info = response.json()
+
+    for category in spending_info['results']:
+        if category['category_slug'] == "total":
+            spending[name] = category['year_to_date']
+
+    return spending
+
+
+def bargraph(dictionary, xlabel, ylabel, title):
+    x = dictionary.keys()
+    y = dictionary.values()
+
+    plt.bar(x, y)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.show()
+
+
+def get_perfect_voters():
+    perfects = congress.votes.perfect('senate', congress=CONGRESS_NO)
+    perfect_voters = []
+    for perfect_voter in perfects['members']:
+        name = perfect_voter['name']
+        party_affiliation = perfect_voter['party']
+        mem_id = perfect_voter['id']
+        perfect_voters.append((name, party_affiliation, mem_id))
+    return perfect_voters
+
+
+def get_Democrats():
+
+    senators = get_senator_list()
+    representatives = get_representative_list()
+    senate_democrats = [senator for senator in senators if senator[1] == "D"]
+    house_democrats = [rep for rep in representatives if rep[1] == "D"]
+    congress_democrats = senate_democrats + house_democrats
+
+    return congress_democrats
+
+
+def get_vote_history(name):
+
+    mem_id = get_member_id(name)
     url = PPC_BASE_URL + VERSION + f'/members/{mem_id}/votes.json'
     headers = {'X-API-Key': credentials.PPC_API_KEY}
     response = requests.get(url, headers=headers)
 
     pprint.pprint(response.json())
 
-def get_committee_history(mem_id):
+
+def get_committees(name):
+
+    mem_id = get_member_id(name)
     url = PPC_BASE_URL + VERSION + f'/members/{mem_id}.json'
     headers = {'X-API-Key': credentials.PPC_API_KEY}
     response = requests.get(url, headers=headers)
     mem_hist = response.json()
-    mem_hist = trim_response(mem_hist)
 
     committees = []
     sub_committees = []
 
-    for i in mem_hist['roles']:
+    for i in mem_hist['results'][0]['roles']:
         for c in i['committees']:
             committees.append(c['name'])
         for sc in i['subcommittees']:
@@ -100,10 +160,3 @@ def get_committee_history(mem_id):
     print("Sub-committee List")
     print("~~~~~~~~~~~~~~")
     print(sub_committees)
-
-def trim_response(response):
-    return response['results'][0]
-
-
-# print(get_member_id("Nancy Pelosi"))
-get_committee_history(get_member_id("Alexandria Ocasio-Cortez"))
