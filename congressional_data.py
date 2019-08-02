@@ -77,19 +77,35 @@ def get_specific_member(name):
 
     return mem_info
 
-
+# Takes a single name or a list of names and returns a dictionary
+# of names mapped to their yearly office spending.
+# Currently only works for House members due to the limitations of ProPublica
 def get_yearly_expense(name):
     spending = {}
-    mem_id = get_member_id(name)
-    url = PPC_BASE_URL + VERSION + f'/members/{mem_id}/office_expenses/2018/4.json'
-    headers = {'X-API-Key': credentials.PPC_API_KEY}
 
-    response = requests.get(url, headers=headers)
-    spending_info = response.json()
+    if isinstance(name, list):
+        for person in name:
+            mem_id = get_member_id(person)
+            url = PPC_BASE_URL + VERSION + f'/members/{mem_id}/office_expenses/2018/4.json'
+            headers = {'X-API-Key': credentials.PPC_API_KEY}
 
-    for category in spending_info['results']:
-        if category['category_slug'] == "total":
-            spending[name] = category['year_to_date']
+            response = requests.get(url, headers=headers)
+            spending_info = response.json()
+
+            for category in spending_info['results']:
+                if category['category_slug'] == "total":
+                    spending[person] = category['year_to_date']
+    else:
+        mem_id = get_member_id(name)
+        url = PPC_BASE_URL + VERSION + f'/members/{mem_id}/office_expenses/2018/4.json'
+        headers = {'X-API-Key': credentials.PPC_API_KEY}
+
+        response = requests.get(url, headers=headers)
+        spending_info = response.json()
+
+        for category in spending_info['results']:
+            if category['category_slug'] == "total":
+                spending[name] = category['year_to_date']
 
     return spending
 
