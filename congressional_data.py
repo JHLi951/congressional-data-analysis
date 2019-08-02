@@ -11,13 +11,17 @@ VERSION = '/v1'
 CONGRESS_NO = 116
 congress = Congress(credentials.API_KEY)
 
+def get(end):
+
+    url = PPC_BASE_URL + VERSION + end
+    headers = {'X-API-Key': credentials.PPC_API_KEY}
+    response = requests.get(url, headers=headers)
+
+    return response
 
 def get_member_list(congress, chamber):
 
-    url = PPC_BASE_URL + VERSION + f'/{congress}/{chamber}/members.json'
-    headers = {'X-API-Key': credentials.PPC_API_KEY}
-
-    response = requests.get(url, headers=headers)
+    response = get(f'/{congress}/{chamber}/members.json')
     mem_list = response.json()
     mem_list = mem_list['results'][0]
 
@@ -32,7 +36,6 @@ def get_senator_list():
         last_name = senator['last_name']
         party_affiliation = senator['party']
         member_id = senator['id']
-        # print(f'{first_name} {last_name}, {party_affiliation}, {member_id}')
         if senator['in_office'] == True:
             senator_list.append((first_name + " " + last_name, party_affiliation, member_id))
     return senator_list
@@ -46,7 +49,6 @@ def get_representative_list():
         last_name = representative['last_name']
         party_affiliation = representative['party']
         member_id = representative['id']
-        # print(f'{first_name} {last_name}, {party_affiliation}, {member_id}')
         if representative['in_office'] == True:
             representative_list.append((first_name + " " + last_name, party_affiliation, member_id))
     return representative_list
@@ -68,14 +70,12 @@ def get_member_id(name):
 def get_specific_member(name):
     
     member_id = get_member_id(name)
-    url = PPC_BASE_URL + VERSION + f'/members/{member_id}.json'
-    headers = {'X-API-Key': credentials.PPC_API_KEY}
-
-    response = requests.get(url, headers=headers)
+    response = get(f'/members/{member_id}.json')
     mem_info = response.json()
     mem_info = mem_info['results'][0]
 
     return mem_info
+
 
 # Takes a single name or a list of names and returns a dictionary
 # of names mapped to their yearly office spending.
@@ -85,22 +85,18 @@ def get_yearly_expense(name):
 
     if isinstance(name, list):
         for person in name:
-            mem_id = get_member_id(person)
-            url = PPC_BASE_URL + VERSION + f'/members/{mem_id}/office_expenses/2018/4.json'
-            headers = {'X-API-Key': credentials.PPC_API_KEY}
 
-            response = requests.get(url, headers=headers)
+            mem_id = get_member_id(person)
+            response = get(f'/members/{mem_id}/office_expenses/2018/4.json')
             spending_info = response.json()
 
             for category in spending_info['results']:
                 if category['category_slug'] == "total":
                     spending[person] = category['year_to_date']
     else:
+        
         mem_id = get_member_id(name)
-        url = PPC_BASE_URL + VERSION + f'/members/{mem_id}/office_expenses/2018/4.json'
-        headers = {'X-API-Key': credentials.PPC_API_KEY}
-
-        response = requests.get(url, headers=headers)
+        response = get(f'/members/{mem_id}/office_expenses/2018/4.json')
         spending_info = response.json()
 
         for category in spending_info['results']:
@@ -111,6 +107,7 @@ def get_yearly_expense(name):
 
 
 def bargraph(dictionary, xlabel, ylabel, title):
+
     x = dictionary.keys()
     y = dictionary.values()
 
@@ -146,9 +143,7 @@ def get_Democrats():
 def get_vote_history(name):
 
     mem_id = get_member_id(name)
-    url = PPC_BASE_URL + VERSION + f'/members/{mem_id}/votes.json'
-    headers = {'X-API-Key': credentials.PPC_API_KEY}
-    response = requests.get(url, headers=headers)
+    response = get(f'/members/{mem_id}/votes.json')
 
     pprint.pprint(response.json())
 
@@ -156,9 +151,7 @@ def get_vote_history(name):
 def get_committees(name):
 
     mem_id = get_member_id(name)
-    url = PPC_BASE_URL + VERSION + f'/members/{mem_id}.json'
-    headers = {'X-API-Key': credentials.PPC_API_KEY}
-    response = requests.get(url, headers=headers)
+    response = get(f'/members/{mem_id}.json')
     mem_hist = response.json()
 
     committees = []
@@ -169,6 +162,7 @@ def get_committees(name):
             committees.append(c['name'])
         for sc in i['subcommittees']:
             sub_committees.append(sc['name'])
+
     print("Committee List")
     print("~~~~~~~~~~~~~~")
     print(committees)
@@ -176,3 +170,4 @@ def get_committees(name):
     print("Sub-committee List")
     print("~~~~~~~~~~~~~~")
     print(sub_committees)
+
