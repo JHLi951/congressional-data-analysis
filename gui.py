@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import *
 import congressional_data
 from tkinter import ttk
+import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -18,23 +19,35 @@ def get_member_info():
 
 root = tk.Tk()
 root.title("Congressional Data")
+# root.state('zoomed')
 
 nb = ttk.Notebook(root)
 f1 = Frame(root, width=500, height=500)
 f2 = Frame(root, width=500, height=500)
+f2.pack(fill="both", expand=TRUE)
+
 nb.pack()
 nb.add(f1, text='Get Member Info')
 nb.add(f2, text='Get Member Spending')
 
 def get_spending_graphs():
     spending = congressional_data.get_yearly_expense("Nancy Pelosi")
-    figure1 = Figure(figsize=(6,5), dpi=100)
+    figure1 = Figure(figsize=(1,1), dpi=100)
+
     subplot1 = figure1.add_subplot(111)
     subplot1.bar(spending.keys(), spending.values())
+    subplot1.set_xticklabels(
+        spending.keys(), 
+        fontdict=None, 
+        minor=False, 
+        rotation=45,
+        fontsize='xx-small',
+        verticalalignment='baseline'
+        )
 
     bar1 = FigureCanvasTkAgg(figure1, f2)
     bar1.draw()
-    bar1.get_tk_widget().pack()
+    bar1.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
 
 
 

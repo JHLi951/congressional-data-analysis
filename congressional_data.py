@@ -80,7 +80,7 @@ def get_specific_member(name):
 # Takes a single name or a list of names and returns a dictionary
 # of names mapped to their yearly office spending.
 # Currently only works for House members due to the limitations of ProPublica
-def get_yearly_expense(name):
+def get_total_expense(name):
     spending = {}
 
     if isinstance(name, list):
@@ -105,6 +105,19 @@ def get_yearly_expense(name):
 
     return spending
 
+def get_yearly_expense(name):
+    spending = {}
+
+    mem_id = get_member_id(name)
+    response = get(f'/members/{mem_id}/office_expenses/2018/4.json')
+    spending_info = response.json()
+
+    for category in spending_info['results']:
+        if category['category_slug'] != "total":
+            spending[category['category_slug']] = category['year_to_date']
+    
+    return spending
+
 
 def bargraph(dictionary, xlabel, ylabel, title):
 
@@ -116,7 +129,6 @@ def bargraph(dictionary, xlabel, ylabel, title):
     plt.ylabel(ylabel)
     plt.title(title)
     plt.show()
-
 
 def get_perfect_voters():
     perfects = congress.votes.perfect('senate', congress=CONGRESS_NO)
